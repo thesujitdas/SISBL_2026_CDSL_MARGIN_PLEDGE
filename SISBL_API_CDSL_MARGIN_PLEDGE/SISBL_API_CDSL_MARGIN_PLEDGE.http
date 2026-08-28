@@ -1,0 +1,6 @@
+@SISBL_API_CDSL_MARGIN_PLEDGE_HostAddress = http://localhost:5012
+
+GET {{SISBL_API_CDSL_MARGIN_PLEDGE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

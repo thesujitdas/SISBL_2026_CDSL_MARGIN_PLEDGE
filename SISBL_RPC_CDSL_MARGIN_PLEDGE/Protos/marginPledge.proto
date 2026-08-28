@@ -1,0 +1,127 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "RPC_CDSL_MARGIN_PLEDGE_V1.Protos";
+
+service MarginPledgeRPC {
+  rpc IsAlive (IsAliveRequest) returns (IsAliveReply);
+  rpc GetLogFile (GetLogFileRequest) returns (stream GetLogFileReply);
+  rpc OpenStream (stream ToRPC) returns (stream FromRPC);
+  rpc Repledge (RepledgeRequest) returns (RepledgeReply);
+  rpc Status (StatusRequest) returns (StatusReply);
+  rpc StatusLive (StatusRequest) returns (stream StatusReply);
+  rpc XDecrypt (XRequest) returns (XReply);
+}
+
+message IsAliveRequest {}
+message IsAliveReply {
+	bool isAlive = 1;
+}
+
+
+message RepledgeRequest {
+	string token = 1;
+	string reqSeqNo = 2;
+}
+message RepledgeReply {
+	bool isSuccess = 1;
+	string message = 2;
+	string data = 3;
+	string repledgeHdrDPID = 4;
+	string repledgeHdrReqId = 5;
+	int32 reqAttempt = 6;
+}
+message RepledgeRequestPacket{
+	bool isSuccess = 1;
+	string message = 2;
+	RepledgeRequestData data = 3;
+	string repledgeHdrDPID = 4;
+	string repledgeHdrReqId = 5;
+}
+message RepledgeRequestData{
+	string pledgeidentifier = 1;
+	string reqtime = 2;
+	string executiondate = 3;
+	repeated RepledgeRequestDataISIN setupdtls = 4;
+}
+message RepledgeRequestDataISIN{
+	string pledgeeboreqid = 1;
+	string pledgeeboid = 2;
+	string pledgeseqno = 3;
+	string prfno = 4;
+	string pledgetype = 5;
+	string pledgequantity = 6;
+	string pledgeexpdate = 7;
+	string pledgevalue = 8;
+	string agrmntno = 9;
+	string pldgrdpintrefno = 10;
+	string pledgeremarks = 11;
+	string reasoncode = 12;
+	string cmid = 13;
+}
+
+
+message ToRPC {
+	oneof data {
+		OneLog logData = 1;
+		OneHttpSuccess httpResponse = 2;
+		OneHttpFailure httpFailure = 3;
+		OneHttpRetry httpRetry = 4;
+	}
+}
+message FromRPC {}
+message OneLog {
+	string reqId = 1;
+	string msg = 2;
+}
+message OneHttpSuccess {
+	string reqId = 1;
+	string data = 2;
+}
+message OneHttpFailure {
+	string reqId = 1;
+	string msg = 2;
+}
+message OneHttpRetry {
+	string reqId = 1;
+	string msg = 2;
+}
+
+
+message StatusRequest {}
+message StatusReply {
+	string status = 1;
+	int32 request = 2;
+	int32 httpSuccess = 3;
+	int32 httpFailure = 4;
+	int32 httpRetry = 5;
+	int32 processError = 6;
+	int32 dataOk = 7;
+	int32 dataError = 8;
+}
+
+
+message GetLogFileRequest {
+	google.protobuf.Timestamp logDate = 1;
+}
+message LogFileName{
+	string fileName = 1;
+}
+message LogFileData{
+	bytes fileChunk = 1;
+}
+message GetLogFileReply {
+	oneof fileData {
+		LogFileName metaInfo = 1;
+		LogFileData content = 2;
+	}
+}
+
+
+message XRequest{
+	string input = 1;
+}
+message XReply{
+	string output = 1;
+}
