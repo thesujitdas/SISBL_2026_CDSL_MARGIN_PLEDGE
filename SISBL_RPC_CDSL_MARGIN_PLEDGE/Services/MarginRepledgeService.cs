@@ -1,17 +1,17 @@
 ﻿using Google.Protobuf;
 using Grpc.Core;
-using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 using SISBL_RPC_CDSL_MARGIN_PLEDGE.Interfaces;
 
 
 namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Services
 {
-    public class MarginPledgeService : MarginPledgeRPC.MarginPledgeRPCBase
+    public class MarginRepledgeService : MarginRepledgeRPC.MarginRepledgeRPCBase
     {
-        IMarginPledgeProcess marginPledgeProcess;
+        IMarginRepledgeProcess marginPledgeProcess;
         ILogManager logManager;
 
-        public MarginPledgeService(IMarginPledgeProcess marginPledgeProcess, ILogManager logManager)
+        public MarginRepledgeService(IMarginRepledgeProcess marginPledgeProcess, ILogManager logManager)
         {
             this.marginPledgeProcess = marginPledgeProcess;
             this.logManager = logManager;

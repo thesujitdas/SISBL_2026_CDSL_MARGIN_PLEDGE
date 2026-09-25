@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 using SISBL_API_CDSL_MARGIN_PLEDGE.Classes;
 using SISBL_API_CDSL_MARGIN_PLEDGE.Interfaces;
 using SISBL_API_CDSL_MARGIN_PLEDGE.Models;
@@ -13,9 +13,9 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Controllers
     [TypeFilter(typeof(SISBL_Authorize))]
     public class MRController : ControllerBase
     {
-        IMarginPledgeClientProcess marginPledgeProcess;
+        IMarginRepledgeClientProcess marginPledgeProcess;
 
-        public MRController(IMarginPledgeClientProcess marginPledgeProcess)
+        public MRController(IMarginRepledgeClientProcess marginPledgeProcess)
         {
             this.marginPledgeProcess = marginPledgeProcess;
         }
@@ -40,19 +40,10 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Controllers
 
 
         [HttpPost("status")]
-        [AllowAnonymous]
+        //[AllowAnonymous]
         public async Task<ActionResult<OurResponseModel>> Status([FromBody] string value)
         {
-            OurResponseModel resp = new();
-            try
-            {
-                /* Process */
-                var reply = await marginPledgeProcess.GetStatus();
-                resp.Data = reply;
-                resp.IsSuccess = true;
-            }
-            catch (Exception ex) { resp.Message = ex.Message; }
-
+            OurResponseModel resp = await marginPledgeProcess.GetStatus();
             return Ok(resp);
         }
 

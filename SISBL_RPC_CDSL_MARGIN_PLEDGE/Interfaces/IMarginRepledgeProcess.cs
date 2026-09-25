@@ -1,8 +1,8 @@
-﻿using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+﻿using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 
 namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Interfaces
 {
-    public interface IMarginPledgeProcess
+    public interface IMarginRepledgeProcess
     {
         public Task<RepledgeReply> Repledge(RepledgeRequest request);
 

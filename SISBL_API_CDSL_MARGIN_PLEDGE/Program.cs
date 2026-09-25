@@ -26,7 +26,7 @@ builder.Services.AddHttpClient("MarginRepledge", httpClient =>
 }).AddPolicyHandler(GetRetryPolicy());
 
 builder.Services.AddSingleton<SISBL_Validator>();
-builder.Services.AddSingleton<IMarginPledgeClientProcess, MarginPledgeClientProcess>();
+builder.Services.AddSingleton<IMarginRepledgeClientProcess, MarginRepledgeClientProcess>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(policyBuilder =>
@@ -37,10 +37,6 @@ builder.Services.AddCors(policyBuilder =>
 
 
 var app = builder.Build();
-//if (app.Environment.IsDevelopment())
-//{
-//    app.MapOpenApi();
-//}
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();

@@ -1,4 +1,4 @@
-﻿using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+﻿using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 using SISBL_RPC_CDSL_MARGIN_PLEDGE.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
 {
-    public class MarginPledgeProcess: IMarginPledgeProcess
+    public class MarginRepledgeProcess: IMarginRepledgeProcess
     {
         enum StatusOptions { Started, Stopping, Stopped };
         enum logType
@@ -20,6 +20,8 @@ namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
             HttpResponse,
             HttpError,
             RequestData,
+            RequestDataError,
+            RequestProcessError,
             Response,
             ResponseError,
             ResponseDecryptionError,
@@ -52,7 +54,7 @@ namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
         public string status { get { return _status; } set { _status = value; } }
 
 
-        public MarginPledgeProcess(IConfiguration Configuration, ILogManager LogManager)
+        public MarginRepledgeProcess(IConfiguration Configuration, ILogManager LogManager)
         {
             var sisblConfig = Configuration.GetSection("SISBL");
 
@@ -131,17 +133,30 @@ namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
             var data = await db.GetRepledge(request.ReqSeqNo);
             if (data.IsSuccess && !string.IsNullOrEmpty(data.RepledgeHdrReqId))
             {
-                string serData = JsonSerializer.Serialize(data.Data, _serializerOptions);
-                string encData = Encrypt(serData, _encryptionKey);
-                reply.Data = encData;
-                reply.RepledgeHdrDPID = data.RepledgeHdrDPID;
-                reply.RepledgeHdrReqId = data.RepledgeHdrReqId;
-                reply.IsSuccess = true;
+                try
+                {
+                    string serData = JsonSerializer.Serialize(data.Data, _serializerOptions);
+                    string encData = Encrypt(serData, _encryptionKey);
+                    reply.Data = encData;
+                    reply.RepledgeHdrDPID = data.RepledgeHdrDPID;
+                    reply.RepledgeHdrReqId = data.RepledgeHdrReqId;
+                    reply.IsSuccess = true;
 
-                Interlocked.Increment(ref requests);
+                    Interlocked.Increment(ref requests);
 
-                /* Log */
-                logManager.Log($"{DateTime.Now.ToString(conLogTime)} : {nameof(logType.RequestData)} : {data.RepledgeHdrReqId} : {serData}");
+                    /* Log */
+                    logManager.Log($"{DateTime.Now.ToString(conLogTime)} : {nameof(logType.RequestData)} : {data.RepledgeHdrReqId} : {serData}");
+                }
+                catch (Exception ex)
+                {
+                    /* Log Error */
+                    logManager.Log($"{DateTime.Now.ToString(conLogTime)} : {nameof(logType.RequestProcessError)} : {request.ReqSeqNo} : {ex.Message}");
+                }
+            }
+            else
+            {
+                /* Log Error */
+                logManager.Log($"{DateTime.Now.ToString(conLogTime)} : {nameof(logType.RequestDataError)} : {request.ReqSeqNo} : {data.Message}");
             }
 
             return reply;

@@ -3,27 +3,25 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Options;
-using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 using SISBL_API_CDSL_MARGIN_PLEDGE.Interfaces;
 using SISBL_API_CDSL_MARGIN_PLEDGE.Models;
 using SISBL_COMMON.Models;
+using System.Data;
 using System.Text;
 using System.Threading.Channels;
 
 namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
 {
-    public class MarginPledgeClientProcess: IMarginPledgeClientProcess
+    public class MarginRepledgeClientProcess: IMarginRepledgeClientProcess
     {
         enum StatusOptions { Started, Stopping, Stopped };
         enum logType
         {
-            Gateway,
-            HttpRequestData,
             HttpRequest,
             HttpResponse,
             HttpError,
-            HttpRetry,
-            ToRPC
+            HttpRetry
         };
         const string conError = "Error ";
         const string conLogTime = "hh:mm:ss tt";
@@ -31,10 +29,12 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
 
         IHttpClientFactory _httpClientFactory;
         HttpRequestRetryTracker httpConfigTracker;
-        GrpcChannel marginPledge_Channel;
-        MarginPledgeRPC.MarginPledgeRPCClient mpRpcClient;
+        GrpcChannel marginRepledge_Channel;
+        MarginRepledgeRPC.MarginRepledgeRPCClient mpRpcClient;
 
         bool _isLive = false;
+        DateTime today = DateTime.Today.AddDays(-1);
+        int _repledgeRequest = 0;
         string? _cdslEndpoint = string.Empty;
 
         static Channel<RepledgeReply> channel = Channel.CreateUnbounded<RepledgeReply>();
@@ -51,7 +51,7 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
         Task? tskCDSL, tskRPC;
 
 
-        public MarginPledgeClientProcess(IConfiguration Configuration, IHttpClientFactory httpClientFactory,
+        public MarginRepledgeClientProcess(IConfiguration Configuration, IHttpClientFactory httpClientFactory,
             IOptionsMonitor<HttpRequestRetryTracker> httpReqTracker)
         {
             _httpClientFactory = httpClientFactory;
@@ -97,16 +97,16 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
             //httpHandler.ServerCertificateCustomValidationCallback =
             //    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
-            marginPledge_Channel = GrpcChannel.ForAddress(marginPledge_HostAddress,
+            marginRepledge_Channel = GrpcChannel.ForAddress(marginPledge_HostAddress,
                 new GrpcChannelOptions { HttpHandler = socketHttpHandler });
 
-            mpRpcClient = new MarginPledgeRPC.MarginPledgeRPCClient(marginPledge_Channel);
+            mpRpcClient = new MarginRepledgeRPC.MarginRepledgeRPCClient(marginRepledge_Channel);
 
             /* Monitor */
             MonitorRPC();
         }
 
-        ~MarginPledgeClientProcess()
+        ~MarginRepledgeClientProcess()
         {
             ctsRPC!.Cancel();
             cts.Cancel();
@@ -123,6 +123,8 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
 
         public async Task Repledge(RepledgeRequestModel request)
         {
+            InitToday();
+            Interlocked.Increment(ref _repledgeRequest);
             RepledgeRequest req = new() { ReqSeqNo = request.ReqId };
 
             /* Get Repledge data from RPC*/
@@ -132,23 +134,47 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
                 Repledge(repledgeReply);
         }
 
-        public async Task<MarginPledge_ExtendedStatus> GetStatus()
+        public async Task<OurResponseModel> GetStatus()
         {
-            MarginPledge_ExtendedStatus reply;
+            InitToday();
+            OurResponseModel reply = new();
             try
             {
                 StatusReply status = await mpRpcClient.StatusAsync(new StatusRequest());
 
-                reply = new(status);
-                //reply.Api_ProcessQueue = requestData.Count;
-                //reply.Api_ReturnQueue = responseData.Count;
+                MarginRepledge_Status ext = new MarginRepledge_Status(status);
+                ext.RepledgeRequest = _repledgeRequest;
+                ext.RPC_Status = marginRepledge_Channel.State.ToString();
+                reply.Data = ext;
             }
-            catch (Exception) { reply = new(); }
+            catch (Exception)
+            {
+                MarginRepledge_ExtendedStatus ext = new();
+                ext.RepledgeRequest = _repledgeRequest;
+                ext.RPC_Status = marginRepledge_Channel.State.ToString();
+                reply.Data = ext;
+            }
 
-            //TestLog();
-
+            reply.IsSuccess = true;
             return reply;
         }
+        //public async Task<MarginRepledge_ExtendedStatus> GetStatus()
+        //{
+        //    MarginRepledge_ExtendedStatus reply;
+        //    try
+        //    {
+        //        StatusReply status = await mpRpcClient.StatusAsync(new StatusRequest());
+
+        //        reply = new(status);
+        //        //reply.Api_ProcessQueue = requestData.Count;
+        //        //reply.Api_ReturnQueue = responseData.Count;
+        //    }
+        //    catch (Exception) { reply = new(); }
+
+        //    //TestLog();
+
+        //    return reply;
+        //}
 
         public async Task<OurFileResponseModel> GetLogFile(DateTime logDate)
         {
@@ -313,12 +339,12 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
             {
                 while (!cts.IsCancellationRequested)
                 {
-                    ConnectivityState currentState = marginPledge_Channel.State;
+                    ConnectivityState currentState = marginRepledge_Channel.State;
 
                     if (currentState == ConnectivityState.Ready)
                         InitRPC();
 
-                    await marginPledge_Channel.WaitForStateChangedAsync(currentState, cts.Token);
+                    await marginRepledge_Channel.WaitForStateChangedAsync(currentState, cts.Token);
                 }
             }
             catch { }
@@ -350,24 +376,33 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
                 /* Http object */
                 HttpClient httpClient = _httpClientFactory.CreateClient("MarginRepledge");
 
+                var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+                content.Headers.Add("dpid", reqObj.RepledgeHdrDPID);
+                content.Headers.Add("reqid", reqObj.RepledgeHdrReqId);
+
                 /* Log */
+                var dpid = content.Headers.GetValues("dpid").First();
+                var reqid = content.Headers.GetValues("reqid").First();
+                string version;
+                if (content.Headers.TryGetValues("version", out IEnumerable<string>? values))
+                    version = values.First();
+                else version = "N/A";
+                
+                var logData = $"URL : {httpClient.BaseAddress}{_cdslEndpoint} Headers : [dpid={dpid} reqid={reqid} version={version}] Body : {jsonString}";
+
                 if (reqObj.ReqAttempt == 1)
                 {
-                    var logData = $"{nameof(logType.HttpRequest)} : {reqObj.RepledgeHdrReqId} : URL : {httpClient.BaseAddress}{_cdslEndpoint} BODY : {jsonString}";
+                    logData = $"{nameof(logType.HttpRequest)} : {reqObj.RepledgeHdrReqId} : {logData}";
                     Log(reqObj.RepledgeHdrReqId, logData);
                 }
                 else
                 {
-                    var logData = $"URL : {httpClient.BaseAddress}{_cdslEndpoint} BODY : {jsonString}";
+                    //logData = $"URL : {httpClient.BaseAddress}{_cdslEndpoint} BODY : {jsonString}";
                     LogHttpRetry(reqObj.RepledgeHdrReqId, logData, reqObj.ReqAttempt);
                 }
 
 
                 /* Send Http request to CDSL */
-                var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-                content.Headers.Add("dpid", reqObj.RepledgeHdrDPID);
-                content.Headers.Add("reqid", reqObj.RepledgeHdrReqId);
-
                 var httpResponse = await httpClient.PostAsync(_cdslEndpoint, content, cts.Token);
 
                 if (httpResponse.IsSuccessStatusCode)
@@ -418,7 +453,7 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
         {
             if (tskRPC is null)
             {
-                if (marginPledge_Channel.State == ConnectivityState.Ready)
+                if (marginRepledge_Channel.State == ConnectivityState.Ready)
                 {
                     ctsRPC = new();
                     tskRPC = Task.Run(() => BeginRPC(), ctsRPC.Token);
@@ -426,8 +461,18 @@ namespace SISBL_API_CDSL_MARGIN_PLEDGE.Classes
             }
             else
             {
-                if (marginPledge_Channel.State != ConnectivityState.Ready)
+                if (marginRepledge_Channel.State != ConnectivityState.Ready)
                     ctsRPC!.Cancel();
+            }
+        }
+
+        void InitToday()
+        {
+            if (today.Day != DateTime.Today.Day)
+            {
+                today = DateTime.Today;
+
+                _repledgeRequest = 0;
             }
         }
 

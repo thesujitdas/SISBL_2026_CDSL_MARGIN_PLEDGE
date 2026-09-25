@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\marginPledge.proto" GrpcServices="Server" />
+    <Protobuf Include="Protos\marginRepledge.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>

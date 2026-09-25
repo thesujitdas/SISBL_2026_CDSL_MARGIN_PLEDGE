@@ -1,14 +1,17 @@
 ﻿namespace SISBL_API_CDSL_MARGIN_PLEDGE.Models
 {
-    public class MarginPledge_ExtendedStatus
+    public class MarginRepledge_ExtendedStatus
     {
-        RPC_CDSL_MARGIN_PLEDGE_V1.Protos.StatusReply _status { get; set; }
+        public int RepledgeRequest {  get; set; }
+        public string RPC_Status { get; set; }
+    }
 
-        public MarginPledge_ExtendedStatus()
-        {
-            this._status = new();
-        }
-        public MarginPledge_ExtendedStatus(RPC_CDSL_MARGIN_PLEDGE_V1.Protos.StatusReply status)
+
+    public class MarginRepledge_Status: MarginRepledge_ExtendedStatus
+    {
+        RPC_CDSL_MARGIN_REPLEDGE_V1.Protos.StatusReply _status { get; set; }
+
+        public MarginRepledge_Status(RPC_CDSL_MARGIN_REPLEDGE_V1.Protos.StatusReply status)
         {
             this._status = status;
         }

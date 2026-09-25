@@ -25,8 +25,8 @@
     <Protobuf Include="..\..\SISBL_2024_SHRINOVA\SISBL_SRVC\Protos\account.proto">
       <Link>Protos\account.proto</Link>
     </Protobuf>
-    <Protobuf Include="..\SISBL_RPC_CDSL_MARGIN_PLEDGE\Protos\marginPledge.proto">
-      <Link>Protos\marginPledge.proto</Link>
+    <Protobuf Include="..\SISBL_RPC_CDSL_MARGIN_PLEDGE\Protos\marginRepledge.proto">
+      <Link>Protos\marginRepledge.proto</Link>
     </Protobuf>
   </ItemGroup>
 

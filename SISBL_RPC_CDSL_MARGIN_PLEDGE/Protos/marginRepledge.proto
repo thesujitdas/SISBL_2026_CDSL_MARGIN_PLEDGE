@@ -2,9 +2,9 @@ syntax = "proto3";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option csharp_namespace = "RPC_CDSL_MARGIN_PLEDGE_V1.Protos";
+option csharp_namespace = "RPC_CDSL_MARGIN_REPLEDGE_V1.Protos";
 
-service MarginPledgeRPC {
+service MarginRepledgeRPC {
   rpc IsAlive (IsAliveRequest) returns (IsAliveReply);
   rpc GetLogFile (GetLogFileRequest) returns (stream GetLogFileReply);
   rpc OpenStream (stream ToRPC) returns (stream FromRPC);

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
-using RPC_CDSL_MARGIN_PLEDGE_V1.Protos;
+using RPC_CDSL_MARGIN_REPLEDGE_V1.Protos;
 using SISBL_RPC_CDSL_MARGIN_PLEDGE.Interfaces;
 using System.Data;
 using System.Xml.Linq;
@@ -82,7 +82,7 @@ namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
                         bool isFirstRow = true;
                         while (sqlDr.Read())
                         {
-                            if(isFirstRow)
+                            if (isFirstRow)
                             {
                                 reply.RepledgeHdrDPID = sqlDr["dpid"].ToString();
                                 reply.RepledgeHdrReqId = sqlDr["reqid"].ToString();
@@ -110,9 +110,10 @@ namespace SISBL_RPC_CDSL_MARGIN_PLEDGE.Classes
                                 Cmid = sqlDr["cmid"].ToString()
                             });
                         }
+                        reply.IsSuccess = true;
                     }
+                    else reply.Message = "No data";
                 }
-                reply.IsSuccess = true;
             }
             catch (Exception ex) { reply.Message = ex.Message; }
             finally
